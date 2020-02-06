@@ -123,9 +123,7 @@ public class ReactNativeFingerprintScannerModule
                     BiometricPrompt bioPrompt = getBiometricPrompt(promise);
 
                     PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                        .setDeviceCredentialAllowed(false)
-                        .setConfirmationRequired(false)
-                        .setNegativeButtonText("Cancel")
+                        .setDeviceCredentialAllowed(true)
                         .setTitle(description)
                         .build();
 
@@ -176,13 +174,16 @@ public class ReactNativeFingerprintScannerModule
         if (authResult == BiometricManager.BIOMETRIC_SUCCESS) {
             return null;
         }
-        if (authResult == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
-            return "FingerprintScannerNotSupported";
-        } else if (authResult == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
-            return "FingerprintScannerNotEnrolled";
-        } else if (authResult == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE) {
-            return "FingerprintScannerNotAvailable";
-        }
+
+        // Commented out so that if biometrics is not supported, automatic fallback to PIN.
+
+        // if (authResult == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
+        //     return "FingerprintScannerNotSupported";
+        // } else if (authResult == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+        //     return "FingerprintScannerNotEnrolled";
+        // } else if (authResult == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE) {
+        //     return "FingerprintScannerNotAvailable";
+        // }
 
         return null;
     }
