@@ -94,7 +94,7 @@ public class ReactNativeFingerprintScannerModule
         }
     }
 
-    public BiometricPrompt getBiometricPrompt(final Promise promise) {
+    public BiometricPrompt getBiometricPrompt(final FragmentActivity fragmentActivity, final Promise promise) {
         // memoize so can be accessed to cancel
         if (biometricPrompt != null) {
             return biometricPrompt;
@@ -104,7 +104,6 @@ public class ReactNativeFingerprintScannerModule
         mReactContext.addLifecycleEventListener(this);
 
         AuthCallback authCallback = new AuthCallback(promise);
-        FragmentActivity fragmentActivity = (FragmentActivity) getCurrentActivity();
         Executor executor = Executors.newSingleThreadExecutor();
         biometricPrompt = new BiometricPrompt(
             fragmentActivity,
@@ -115,23 +114,31 @@ public class ReactNativeFingerprintScannerModule
         return biometricPrompt;
     }
 
-    private void biometricAuthenticate(final String description, final Promise promise) {
+    private void biometricAuthenticate(final String title, final String subtitle, final String description, final String cancelButton, final Promise promise) {
         UiThreadUtil.runOnUiThread(
             new Runnable() {
                 @Override
                 public void run() {
-                    BiometricPrompt bioPrompt = getBiometricPrompt(promise);
+                    FragmentActivity fragmentActivity = (FragmentActivity) mReactContext.getCurrentActivity();
+
+                    if(fragmentActivity == null) return;
+
+                    BiometricPrompt bioPrompt = getBiometricPrompt(fragmentActivity, promise);
 
                     PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                         .setDeviceCredentialAllowed(true)
-                        .setTitle(description)
+                        .setConfirmationRequired(false)
+                        .setNegativeButtonText(cancelButton)
+                        .setDescription(description)
+                        .setSubtitle(subtitle)
+                        .setTitle(title)
                         .build();
 
                     bioPrompt.authenticate(promptInfo);
                 }
             });
-    }
 
+    }
     // the below constants are consistent across BiometricPrompt and BiometricManager
     private String biometricPromptErrName(int errCode) {
         switch (errCode) {
@@ -144,7 +151,7 @@ public class ReactNativeFingerprintScannerModule
             case BiometricPrompt.ERROR_LOCKOUT:
                 return "DeviceLocked";
             case BiometricPrompt.ERROR_LOCKOUT_PERMANENT:
-                return "DeviceLocked";
+                return "DeviceLockedPermanent";
             case BiometricPrompt.ERROR_NEGATIVE_BUTTON:
                 return "UserCancel";
             case BiometricPrompt.ERROR_NO_BIOMETRICS:
@@ -189,7 +196,7 @@ public class ReactNativeFingerprintScannerModule
     }
 
     @ReactMethod
-    public void authenticate(String description, final Promise promise) {
+    public void authenticate(String title, String subtitle, String description, String cancelButton, final Promise promise) {
         if (requiresLegacyAuthentication()) {
             legacyAuthenticate(promise);
         }
@@ -201,7 +208,7 @@ public class ReactNativeFingerprintScannerModule
                 return;
             }
 
-            biometricAuthenticate(description, promise);
+            biometricAuthenticate(title, subtitle, description, cancelButton, promise);
         }
     }
 
@@ -288,13 +295,18 @@ public class ReactNativeFingerprintScannerModule
             @Override
             public void onSucceed() {
                 promise.resolve(true);
-                ReactNativeFingerprintScannerModule.this.release();
             }
 
             @Override
             public void onNotMatch(int availableTimes) {
-                mReactContext.getJSModule(RCTDeviceEventEmitter.class)
-                    .emit("FINGERPRINT_SCANNER_AUTHENTICATION", "AuthenticationNotMatch");
+                if (availableTimes <= 0) {
+                    mReactContext.getJSModule(RCTDeviceEventEmitter.class)
+                            .emit("FINGERPRINT_SCANNER_AUTHENTICATION", "DeviceLocked");
+
+                } else {
+                    mReactContext.getJSModule(RCTDeviceEventEmitter.class)
+                            .emit("FINGERPRINT_SCANNER_AUTHENTICATION", "AuthenticationNotMatch");
+                }
             }
 
             @Override
