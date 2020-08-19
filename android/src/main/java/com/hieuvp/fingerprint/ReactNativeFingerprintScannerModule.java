@@ -128,7 +128,6 @@ public class ReactNativeFingerprintScannerModule
                     PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                         .setDeviceCredentialAllowed(true)
                         .setConfirmationRequired(false)
-                        .setNegativeButtonText(cancelButton)
                         .setDescription(description)
                         .setSubtitle(subtitle)
                         .setTitle(title)
